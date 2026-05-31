@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Portafolio Local UI</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1 data-i18n="app.title">Portafolio Local</h1>
+      <div class="topbar-row">
+        <nav class="tabs" id="tabs"></nav>
+        <button id="btn-lang" class="btn-lang" type="button">EN</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="view" id="view-dashboard">
+        <h2 data-i18n="dashboard.title">Dashboard</h2>
+        <div class="cards">
+          <article class="card">
+            <h3 data-i18n="dashboard.total_usd">Total USD</h3>
+            <p id="dash-total-usd">-</p>
+          </article>
+          <article class="card">
+            <h3 data-i18n="dashboard.accounts">Cuentas</h3>
+            <p id="dash-accounts">-</p>
+          </article>
+          <article class="card">
+            <h3 data-i18n="dashboard.last_update">Ultima Actualizacion</h3>
+            <p id="dash-last-update">-</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="view hidden" id="view-accounts">
+        <h2 data-i18n="accounts.title">Cuentas</h2>
+
+        <div id="account-form-modal" class="modal-overlay is-hidden">
+          <form id="form-account" class="modal-card">
+            <h3 class="modal-title" data-i18n="accounts.modal.title">Nueva Cuenta</h3>
+            <div class="modal-fields grid two">
+              <label><span data-i18n="accounts.modal.name">Nombre</span><input name="name" required /></label>
+              <label><span data-i18n="accounts.modal.currency">Moneda</span><select name="symbol" id="select-symbol" required><option value="" data-i18n="accounts.modal.select">Seleccionar...</option></select></label>
+              <label><span data-i18n="accounts.modal.stake">Permite Stake</span>
+                <select name="allows_stake">
+                  <option value="false">No</option>
+                  <option value="true" data-i18n="accounts.modal.stake_yes">Si</option>
+                </select>
+              </label>
+              <label><span data-i18n="accounts.modal.stake_target">Meta de rewards esperados en 30 dias (USD)</span><input name="stake_target" type="number" step="0.01" value="0" /></label>
+            </div>
+            <div class="modal-actions">
+              <button id="btn-cancel-account-form" type="button" class="modal-btn modal-btn-secondary" data-i18n="accounts.modal.cancel">Cancelar</button>
+              <button type="submit" class="modal-btn modal-btn-primary" data-i18n="accounts.modal.create">Crear Cuenta</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3 data-i18n="accounts.panel.title">Listado</h3>
+          <div class="row">
+            <input id="accounts-query" data-i18n-ph="accounts.search.ph" placeholder="Buscar por nombre o moneda" />
+            <button id="btn-search-accounts" type="button" data-i18n="accounts.btn.search">Buscar</button>
+            <button id="btn-refresh-accounts" type="button" data-i18n="accounts.btn.refresh">Refrescar</button>
+            <button id="btn-new-account" type="button" class="btn-action-primary" data-i18n="accounts.btn.new">+ Nueva Cuenta</button>
+            <span class="accounts-total-usd"><span data-i18n="reports.total_usd">Total USD</span>: <strong id="report-total-usd">-</strong></span>
+          </div>
+          <div class="table-wrap"><table id="table-accounts"></table></div>
+        </div>
+      </section>
+
+      <section class="view hidden" id="view-movements">
+        <h2 data-i18n="movements.title">Movimientos</h2>
+
+        <div class="panel">
+          <h3 data-i18n="movements.panel.title">Movimientos Recientes</h3>
+          <div class="row">
+            <button id="btn-load-movements" type="button" data-i18n="movements.btn.refresh">Refrescar</button>
+            <button id="btn-new-movement" type="button" class="btn-action-primary" data-i18n="movements.btn.new">+ Registrar Movimiento</button>
+          </div>
+          <div class="table-wrap"><table id="table-movements"></table></div>
+        </div>
+      </section>
+
+
+
+      <section class="view hidden" id="view-staking">
+        <h2 data-i18n="staking.title">Staking</h2>
+        <div class="panel">
+          <button id="btn-load-staking" type="button" data-i18n="staking.btn.update">Actualizar Progreso</button>
+          <div class="table-wrap"><table id="table-staking"></table></div>
+        </div>
+      </section>
+
+      <section class="view hidden" id="view-market">
+        <h2 data-i18n="market.title">Mercado</h2>
+
+        <div id="currency-form-modal" class="modal-overlay is-hidden">
+          <form id="form-currency" class="modal-card">
+            <h3 class="modal-title" data-i18n="market.modal.title">Nueva Moneda</h3>
+            <div class="modal-fields grid two">
+              <label><span data-i18n="market.modal.symbol">Simbolo</span><input name="simbolo" required data-i18n-ph="market.modal.symbol_ph" placeholder="ej: BTC" /></label>
+              <label><span data-i18n="market.modal.name">Nombre</span><input name="nombre" required data-i18n-ph="market.modal.name_ph" placeholder="ej: Bitcoin" /></label>
+            </div>
+            <div class="modal-actions">
+              <button id="btn-cancel-currency-form" type="button" class="modal-btn modal-btn-secondary" data-i18n="market.modal.cancel">Cancelar</button>
+              <button type="submit" class="modal-btn modal-btn-primary" data-i18n="market.modal.add">Agregar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="row">
+            <button id="btn-update-prices" type="button" data-i18n="market.btn.update">Actualizar Desde Internet</button>
+            <button id="btn-load-prices" type="button" data-i18n="market.btn.refresh">Refrescar</button>
+            <button id="btn-new-currency" type="button" class="btn-action-primary" data-i18n="market.btn.new">+ Nueva Moneda</button>
+          </div>
+          <div class="table-wrap"><table id="table-market"></table></div>
+        </div>
+      </section>
+      <section class="view hidden" id="view-config">
+        <h2 data-i18n="config.title">Configuracion</h2>
+        <div class="panel">
+          <h3 data-i18n="config.db.title">Base de Datos</h3>
+          <div class="db-config-header">
+            <span data-i18n="config.db.active_label">Activa:</span>
+            <strong id="db-active-name">-</strong>
+            <button id="btn-db-backup" type="button" class="btn-action-primary" data-i18n="config.db.btn_backup">Generar Respaldo</button>
+          </div>
+          <div class="table-wrap">
+            <table class="full-table">
+              <thead>
+                <tr>
+                  <th data-i18n="config.db.col_name">Archivo</th>
+                  <th class="col-num" data-i18n="config.db.col_size">Tamano</th>
+                  <th data-i18n="config.db.col_date">Fecha</th>
+                  <th data-i18n="config.db.col_actions">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="db-files-list"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      <section class="view hidden" id="view-account-detail">
+        <div class="account-detail-page-header">
+          <button id="btn-back-accounts" class="btn-back" type="button">&#8592; <span data-i18n="accounts.title">Cuentas</span></button>
+          <div class="account-detail-title-wrap">
+            <h2 id="acct-detail-name">-</h2>
+            <span id="acct-detail-symbol" class="account-detail-symbol">-</span>
+          </div>
+          <button id="btn-add-movement-detail" class="btn-action-primary" type="button" data-i18n="movements.btn.new">+ Registrar Movimiento</button>
+        </div>
+        <div id="acct-detail-summary" class="account-detail-summary"></div>
+        <div class="table-wrap">
+          <table id="table-account-detail" class="full-table"></table>
+        </div>
+      </section>
+    </main>
+
+    <aside id="toast" class="toast hidden"></aside>
+
+    <!-- Movement Form Modal (global, accessible from any view) -->
+    <div id="movement-form-modal" class="modal-overlay is-hidden">
+      <form id="form-movement" class="modal-card">
+        <h3 class="modal-title" data-i18n="movements.modal.title">Registrar Movimiento</h3>
+        <div class="modal-fields">
+          <div class="grid two">
+            <label class="span-2">
+              <span data-i18n="movements.modal.account">Cuenta</span>
+              <select name="account_id" id="movement-account"></select>
+              <span id="prices-loading-spinner" class="spinner prices-loading-spinner is-hidden" data-i18n="movements.modal.loading">Obteniendo precios...</span>
+            </label>
+            <label><span data-i18n="movements.modal.type">Tipo</span>
+              <select name="type">
+                <option value="ingreso" data-i18n="movements.modal.type.ingreso">Ingreso</option>
+                <option value="retiro" data-i18n="movements.modal.type.retiro">Retiro</option>
+                <option value="reward" data-i18n="movements.modal.type.reward">Reward (Staking)</option>
+              </select>
+            </label>
+          </div>
+
+          <fieldset class="amounts-fieldset">
+            <legend data-i18n="movements.modal.amounts">Montos y Precio</legend>
+            <div class="stack">
+              <label>
+                <span class="inline-amount-label"><span data-i18n="movements.modal.amount">Monto</span> <span id="amount-currency-label">Nativo</span></span>
+                <div class="modal-input-lockwrap">
+                  <input name="amount" id="movement-amount" type="number" step="0.00000001" min="0" placeholder="0.00000000" class="modal-input" />
+                  <button type="button" class="modal-lock-btn" id="lock-btn-amount" data-lock-field="amount" title="Fijar este campo">&#128275;</button>
+                </div>
+              </label>
+              <label>
+                <span data-i18n="movements.modal.amount_usd">Monto USD</span>
+                <div class="modal-input-lockwrap">
+                  <input name="monto_usd" id="movement-amount-usd" type="number" step="0.00000001" min="0" placeholder="0.00000000" class="modal-input" />
+                  <button type="button" class="modal-lock-btn" id="lock-btn-monto-usd" data-lock-field="monto_usd" title="Fijar este campo">&#128275;</button>
+                </div>
+              </label>
+              <label>
+                <span class="inline-amount-label"><span data-i18n="movements.modal.price_per">Precio USD por</span> <span id="price-currency-label">unidad</span></span>
+                <div class="modal-input-lockwrap">
+                  <input name="price_usd" id="movement-price-usd" type="number" step="0.00000001" min="0" placeholder="0.00000000" class="modal-input" />
+                  <button type="button" class="modal-lock-btn is-locked" id="lock-btn-price-usd" data-lock-field="price_usd" title="Campo fijo">&#128274;</button>
+                </div>
+              </label>
+            </div>
+          </fieldset>
+
+          <label><span data-i18n="movements.modal.description">Descripcion (opcional)</span><input name="description" id="movement-description" /></label>
+          <label><span data-i18n="movements.modal.fecha">Fecha del movimiento</span><input type="date" id="movement-fecha" name="fecha" /></label>
+        </div>
+        <div class="modal-actions">
+          <button id="btn-cancel-movement-form" type="button" class="modal-btn modal-btn-secondary" data-i18n="movements.modal.cancel">Cancelar</button>
+          <button type="submit" class="modal-btn modal-btn-primary" data-i18n="movements.modal.save">Guardar Movimiento</button>
+        </div>
+      </form>
+    </div>
+
+    <script src="i18n.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
