@@ -21,6 +21,7 @@
     - [Con uv (recomendado)](#con-uv-recomendado)
     - [Sin uv (Python estándar)](#sin-uv-python-estándar)
   - [Quick Start](#quick-start)
+  - [Screenshots](#screenshots)
   - [Uso — Interfaz Web](#uso--interfaz-web)
     - [Secciones disponibles](#secciones-disponibles)
   - [Uso — CLI](#uso--cli)
@@ -151,6 +152,30 @@ uv run python scripts/web_ui_server.py
 Abre tu navegador en **http://127.0.0.1:8765**
 
 La base de datos SQLite se crea automáticamente en `scripts/mi_portafolio.db` al primer inicio.
+
+---
+
+## Screenshots
+
+**Dashboard** — resumen del portafolio en tiempo real
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+**Cuentas** — saldo, USD invertido, valor actual y % de retorno por cuenta
+
+![Cuentas](docs/screenshots/cuentas.png)
+
+**Movimientos** — historial con edición y eliminación por registro
+
+![Movimientos](docs/screenshots/movimientos.png)
+
+**Staking** — progreso hacia metas mensuales de rewards por cuenta
+
+![Staking](docs/screenshots/staking.png)
+
+**Mercado** — precios actualizados desde CoinGecko
+
+![Mercado](docs/screenshots/mercado.png)
 
 ---
 
