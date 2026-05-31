@@ -1,0 +1,26 @@
+# Enforce LF line endings for all text files
+* text=auto eol=lf
+
+# Explicitly LF
+*.py    text eol=lf
+*.js    text eol=lf
+*.html  text eol=lf
+*.css   text eol=lf
+*.md    text eol=lf
+*.toml  text eol=lf
+*.txt   text eol=lf
+*.csv   text eol=lf
+*.json  text eol=lf
+*.sh    text eol=lf
+
+# Windows scripts — keep CRLF
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Binary — no conversion
+*.db    binary
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.xlsx  binary
