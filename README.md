@@ -24,7 +24,6 @@
   - [Screenshots](#screenshots)
   - [Uso — Interfaz Web](#uso--interfaz-web)
     - [Secciones disponibles](#secciones-disponibles)
-  - [Uso — CLI](#uso--cli)
   - [Estructura del Proyecto](#estructura-del-proyecto)
   - [Ejecutar Tests](#ejecutar-tests)
   - [Limitaciones](#limitaciones)
@@ -177,6 +176,12 @@ La base de datos SQLite se crea automáticamente en `scripts/mi_portafolio.db` a
 
 ![Mercado](docs/screenshots/mercado.png)
 
+**Internacionalización** — interfaz disponible en español e inglés (botón EN/ES en la barra superior)
+
+| Español | Inglés |
+|---|---|
+| ![Español](docs/screenshots/language-es.png) | ![Inglés](docs/screenshots/language-en.png) |
+
 ---
 
 ## Uso — Interfaz Web
@@ -199,30 +204,6 @@ También disponible vía script PowerShell:
 | **Staking** | Progreso hacia metas anuales de staking por cuenta |
 | **Mercado** | Actualizar precios desde CoinGecko y ver último snapshot de cotizaciones |
 | **Configuración** | Backup de la base de datos, selección de DB activa, restauración |
-
----
-
-## Uso — CLI
-
-```bash
-uv run python scripts/gestor_portafolio.py
-```
-
-El menú interactivo permite:
-
-1. Ver portafolio consolidado
-2. Registrar movimiento (con conversión multi-moneda)
-3. Crear nueva cuenta
-4. Ver progreso de metas de staking
-5. Actualizar precios desde internet
-6. Ver últimos movimientos por cuenta
-7. Editar movimiento
-8. Eliminar movimiento
-9. Buscar cuentas
-10. Ayuda rápida
-11. Salir
-
-**Atajos**: `h` / `ayuda` / `help` para ayuda rápida, `q` / `salir` para salir.
 
 ---
 
