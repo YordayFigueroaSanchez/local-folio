@@ -3,7 +3,7 @@
 
   const TRANSLATIONS = {
     es: {
-      "app.title": "Portafolio Local",
+      "app.title": "Portafolio Local v0.0.1",
       "lang.btn": "EN",
 
       "tab.dashboard": "DASHBOARD",
@@ -198,7 +198,7 @@
     },
 
     en: {
-      "app.title": "Local Portfolio",
+      "app.title": "Local Portfolio v0.0.1",
       "lang.btn": "ES",
 
       "tab.dashboard": "DASHBOARD",

@@ -1,6 +1,6 @@
 [project]
 name = "plantilla-recompensas"
-version = "0.1.0"
+version = "0.0.1"
 description = "Reward registry tooling with CSV tracking and FX-based calculations"
 readme = "aidlc-docs/units/001-analisis-plantilla-xlsx-mejora-registro-cambios/change-tracking-strategy.md"
 requires-python = ">=3.12"

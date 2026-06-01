@@ -3,6 +3,7 @@
 > Herramienta local para seguimiento de criptomonedas y activos fiat con interfaz web y CLI. Sin dependencias externas, todo corre en tu propia máquina.
 
 ![Python](https://img.shields.io/badge/Python-3.12%2B-blue?logo=python&logoColor=white)
+![Version](https://img.shields.io/badge/Version-0.0.1-informational)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Tests](https://img.shields.io/badge/Tests-43%20passing-brightgreen)
 
