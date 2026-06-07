@@ -1,4 +1,4 @@
-# Crypto Portfolio Manager
+# local-folio
 
 > Herramienta local para seguimiento de criptomonedas y activos fiat con interfaz web y CLI. Sin dependencias externas, todo corre en tu propia máquina.
 
@@ -11,7 +11,7 @@
 
 ## Tabla de Contenidos
 
-- [Crypto Portfolio Manager](#crypto-portfolio-manager)
+- [local-folio](#local-folio)
   - [Tabla de Contenidos](#tabla-de-contenidos)
   - [¿Qué es esto?](#qué-es-esto)
   - [Funcionalidades](#funcionalidades)
@@ -100,8 +100,8 @@ Más información en [docs.astral.sh/uv](https://docs.astral.sh/uv/).
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/tu-usuario/crypto-portfolio-manager.git
-cd crypto-portfolio-manager
+git clone https://github.com/tu-usuario/local-folio.git
+cd local-folio
 
 # Crear entorno virtual e instalar dependencias
 uv sync
@@ -117,8 +117,8 @@ source .venv/bin/activate
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/tu-usuario/crypto-portfolio-manager.git
-cd crypto-portfolio-manager
+git clone https://github.com/tu-usuario/local-folio.git
+cd local-folio
 
 # Crear entorno virtual
 python -m venv .venv
@@ -138,8 +138,8 @@ source .venv/bin/activate
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/tu-usuario/crypto-portfolio-manager.git
-cd crypto-portfolio-manager
+git clone https://github.com/tu-usuario/local-folio.git
+cd local-folio
 
 # Lanzar la interfaz web (recomendado — crea el entorno virtual automáticamente)
 uv run python scripts/web_ui_server.py
