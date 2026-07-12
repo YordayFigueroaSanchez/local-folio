@@ -1,8 +1,8 @@
 [project]
-name = "plantilla-recompensas"
+name = "local-folio"
 version = "0.0.1"
-description = "Reward registry tooling with CSV tracking and FX-based calculations"
-readme = "aidlc-docs/units/001-analisis-plantilla-xlsx-mejora-registro-cambios/change-tracking-strategy.md"
+description = "Herramienta local para seguimiento de criptomonedas y activos fiat con interfaz web y CLI"
+readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
 
