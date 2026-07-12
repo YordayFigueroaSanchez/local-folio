@@ -9,6 +9,7 @@ from scripts import gestor_portafolio as gp
 class PortfolioManagerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.conn = sqlite3.connect(":memory:")
+        self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         gp.initialize_database(self.conn)
 
@@ -338,6 +339,34 @@ class PortfolioManagerTests(unittest.TestCase):
         self.assertAlmostEqual(float(updated_row["monto_usd"]), 17750.0)
         self.assertEqual(str(updated_row["descripcion"]), "after")
 
+    def test_update_movement_by_id_preserves_explicit_monto_usd(self) -> None:
+        """Un monto_usd explicito no debe ser pisado por el recalculo monto * precio."""
+        account_id = self._create_account("Edit USD Source", "BTC")
+        self._insert_tx(
+            account_id,
+            amount=0.5,
+            tx_type="ingreso",
+            price_usd=70000.0,
+        )
+
+        row = gp.get_recent_account_movements(self.conn, account_id=account_id, limit=1)[0]
+        movement_id = int(row["id"])
+
+        updated = gp.update_movement_by_id(
+            self.conn,
+            movement_id=movement_id,
+            tipo="ingreso",
+            monto=0.5,
+            precio_usd=70000.0,
+            descripcion="entrada en USD",
+            monto_usd=35000.5,
+        )
+
+        self.assertTrue(updated)
+        updated_row = gp.get_movement_by_id(self.conn, movement_id)
+        assert updated_row is not None
+        self.assertAlmostEqual(float(updated_row["monto_usd"]), 35000.5)
+
     def test_delete_movement_by_id_removes_row(self) -> None:
         account_id = self._create_account("Delete Test", "ETH")
         self._insert_tx(
@@ -470,7 +499,6 @@ class PortfolioManagerTests(unittest.TestCase):
         result = gp.calculate_conversions(
             amount=1.0,
             precio_usd=95000.0,
-            currency_symbol="BTC",
             source_field="amount"
         )
         self.assertAlmostEqual(result["amount"], 1.0, places=8)
@@ -481,7 +509,6 @@ class PortfolioManagerTests(unittest.TestCase):
         result = gp.calculate_conversions(
             monto_usd=1000.0,
             precio_usd=50000.0,
-            currency_symbol="BTC",
             source_field="monto_usd"
         )
         self.assertAlmostEqual(result["amount"], 0.02, places=8)
@@ -493,7 +520,6 @@ class PortfolioManagerTests(unittest.TestCase):
             gp.calculate_conversions(
                 amount=1.0,
                 precio_usd=100000.0,
-                currency_symbol="BTC",
                 source_field="monto_uyu"
             )
 
@@ -502,7 +528,6 @@ class PortfolioManagerTests(unittest.TestCase):
         result = gp.calculate_conversions(
             amount=500.0,
             precio_usd=1.0,
-            currency_symbol="USD",
             source_field="amount"
         )
         self.assertAlmostEqual(result["amount"], 500.0, places=8)

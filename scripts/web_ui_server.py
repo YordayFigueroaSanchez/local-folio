@@ -17,9 +17,7 @@ WEB_DIR = os.path.join(PROJECT_ROOT, "web")
 
 
 def _db_connection() -> sqlite3.Connection:
-    conn = gp.get_connection()
-    conn.row_factory = sqlite3.Row
-    return conn
+    return gp.get_connection()
 
 
 def _safe_int(value: str, default: int, minimum: int = 1, maximum: int | None = None) -> int:
@@ -356,7 +354,7 @@ def _serve_static(handler: BaseHTTPRequestHandler, route_path: str) -> bool:
         relative = "index.html"
 
     full_path = os.path.normpath(os.path.join(WEB_DIR, relative))
-    if not full_path.startswith(WEB_DIR):
+    if not full_path.startswith(os.path.normpath(WEB_DIR) + os.sep):
         _error(handler, "Invalid static path", status=HTTPStatus.FORBIDDEN)
         return True
 
@@ -751,6 +749,7 @@ class PortfolioRequestHandler(BaseHTTPRequestHandler):
             tx_type = str(body.get("type", "")).strip().lower()
             amount = float(body.get("amount", 0))
             price_usd = float(body.get("price_usd", 0))
+            monto_usd = float(body.get("monto_usd", 0))
             description = str(body.get("description", "")).strip()
             fecha_raw = str(body.get("fecha", "")).strip()
             fecha = fecha_raw if fecha_raw else None
@@ -774,6 +773,7 @@ class PortfolioRequestHandler(BaseHTTPRequestHandler):
                     precio_usd=price_usd,
                     descripcion=description,
                     fecha=fecha,
+                    monto_usd=monto_usd if monto_usd > 0 else None,
                 )
 
             if not updated:
@@ -902,10 +902,17 @@ class PortfolioRequestHandler(BaseHTTPRequestHandler):
             _error(self, "Not a valid SQLite database", status=HTTPStatus.BAD_REQUEST)
             return
 
+        previous_path = gp.get_db_path()
         gp.set_active_db_path(target_path)
-        # Ensure the new DB has the expected schema
-        with _db_connection() as conn:
-            gp.initialize_database(conn)
+        # Ensure the new DB has the expected schema; roll back on failure so
+        # the app never stays pointed at a DB it cannot use.
+        try:
+            with _db_connection() as conn:
+                gp.initialize_database(conn)
+        except sqlite3.Error as exc:
+            gp.set_active_db_path(previous_path)
+            _error(self, f"Could not initialize selected database: {exc}", status=HTTPStatus.BAD_REQUEST)
+            return
 
         _response(self, {"ok": True, "active": target_path, "active_name": os.path.basename(target_path)})
 

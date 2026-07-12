@@ -7,6 +7,8 @@ from urllib import error, parse, request
 DB_FILENAME = "mi_portafolio.db"
 COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price"
 HTTP_TIMEOUT = 12.0
+# Unified precision policy: all amounts use 8 decimals regardless of currency.
+AMOUNT_PRECISION = 8
 
 _SCRIPT_DIR: str = os.path.dirname(os.path.abspath(__file__))
 _ACTIVE_DB_CONFIG: str = os.path.join(_SCRIPT_DIR, "active_db.txt")
@@ -96,8 +98,9 @@ def set_active_db_path(path: str) -> None:
 
 
 def get_connection() -> sqlite3.Connection:
-    """Create a SQLite connection with foreign keys enabled."""
+    """Create a SQLite connection with foreign keys enabled and named-row access."""
     conn = sqlite3.connect(get_db_path())
+    conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
@@ -521,7 +524,6 @@ def create_account(conn: sqlite3.Connection) -> None:
 
 def list_currencies(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """Return all registered currencies ordered by simbolo."""
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute("SELECT simbolo, nombre FROM monedas ORDER BY simbolo")
     return cursor.fetchall()
@@ -557,7 +559,6 @@ def delete_currency(conn: sqlite3.Connection, simbolo: str) -> None:
 
 def list_accounts(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """Return all accounts ordered by id."""
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -571,7 +572,6 @@ def list_accounts(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
 def search_accounts(conn: sqlite3.Connection, query: str) -> list[sqlite3.Row]:
     """Search accounts by partial name or currency symbol."""
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     pattern = f"%{query.strip()}%"
     cursor.execute(
@@ -607,34 +607,11 @@ def show_account_search(conn: sqlite3.Connection) -> None:
         )
 
 
-def get_precision_for_currency(symbol: str) -> int:
-    """
-    Return the number of decimal places for a given currency symbol.
-
-    Args:
-        symbol: Currency symbol (e.g., 'BTC', 'USD', 'USDT')
-
-    Returns:
-        int: 8 for all currencies
-
-    Examples:
-        >>> get_precision_for_currency('BTC')
-        8
-        >>> get_precision_for_currency('USD')
-        8
-        >>> get_precision_for_currency('USDT')
-        8
-    """
-    # Unified precision policy: always 8 decimals.
-    return 8
-
-
 def calculate_conversions(
     *,
     amount: float | None = None,
     monto_usd: float | None = None,
     precio_usd: float,
-    currency_symbol: str,
     source_field: str
 ) -> dict[str, float]:
     """Calculate bidirectional conversions between native currency and USD."""
@@ -643,14 +620,12 @@ def calculate_conversions(
     if source_field not in {'amount', 'monto_usd'}:
         raise ValueError(f"source_field inválido: {source_field}")
 
-    precision = get_precision_for_currency(currency_symbol)
-
     if source_field == 'amount':
         amount_value = amount
-        monto_usd_value = round(amount_value * precio_usd, 8)
+        monto_usd_value = round(amount_value * precio_usd, AMOUNT_PRECISION)
     else:
         monto_usd_value = monto_usd
-        amount_value = round(monto_usd_value / precio_usd, precision)
+        amount_value = round(monto_usd_value / precio_usd, AMOUNT_PRECISION)
 
     return {
         'amount': amount_value,
@@ -892,14 +867,12 @@ def register_transaction(conn: sqlite3.Connection) -> None:
                 result = calculate_conversions(
                     amount=monto_entered,
                     precio_usd=precio_usd,
-                    currency_symbol=currency,
                     source_field='amount'
                 )
             elif source_field == 'monto_usd':
                 result = calculate_conversions(
                     monto_usd=monto_entered,
                     precio_usd=precio_usd,
-                    currency_symbol=currency,
                     source_field='monto_usd'
                 )
             
@@ -910,9 +883,8 @@ def register_transaction(conn: sqlite3.Connection) -> None:
             return
         
         # Step 8: Show summary
-        precision = get_precision_for_currency(currency)
         print("\nResumen del movimiento:")
-        print(f"  Monto {currency}: {monto:.{precision}f}")
+        print(f"  Monto {currency}: {monto:.{AMOUNT_PRECISION}f}")
         print(f"  Monto USD: {monto_usd:.8f}")
         
         # Step 9: Validate coherence
@@ -967,7 +939,6 @@ def get_recent_account_movements(
     conn: sqlite3.Connection, account_id: int, limit: int = 10
 ) -> list[sqlite3.Row]:
     """Return recent movements for one account ordered by id desc."""
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     safe_limit = max(1, min(int(limit), 100))
     cursor.execute(
@@ -995,7 +966,6 @@ def get_recent_movements_all(
     conn: sqlite3.Connection, limit: int = 10
 ) -> list[sqlite3.Row]:
     """Return recent movements across all accounts ordered by id desc."""
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     safe_limit = max(1, min(int(limit), 100))
     cursor.execute(
@@ -1056,7 +1026,6 @@ def show_recent_movements_by_account(conn: sqlite3.Connection) -> None:
 
 def get_movement_by_id(conn: sqlite3.Connection, movement_id: int) -> sqlite3.Row | None:
     """Return one movement row by id or None if not found."""
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -1088,12 +1057,20 @@ def update_movement_by_id(
     precio_usd: float,
     descripcion: str,
     fecha: str | None = None,
+    monto_usd: float | None = None,
 ) -> bool:
-    """Update one movement safely and return True when a row was changed."""
+    """Update one movement safely and return True when a row was changed.
+
+    When monto_usd is not provided it is recomputed as monto * precio_usd;
+    passing it explicitly preserves a USD amount entered by the user.
+    """
     if tipo not in {"ingreso", "retiro", "reward"}:
         raise ValueError("Tipo invalido")
     if monto <= 0 or precio_usd <= 0:
         raise ValueError("Valores numericos invalidos")
+
+    if monto_usd is None or monto_usd <= 0:
+        monto_usd = round(float(monto) * float(precio_usd), 8)
 
     fecha_mov = fecha if fecha else None
     cursor = conn.cursor()
@@ -1106,8 +1083,7 @@ def update_movement_by_id(
             WHERE id = ?
             """,
             (
-                tipo, float(monto), float(precio_usd),
-                round(float(monto) * float(precio_usd), 8),
+                tipo, float(monto), float(precio_usd), float(monto_usd),
                 descripcion, fecha_mov, now_iso(), movement_id,
             ),
         )
@@ -1120,8 +1096,7 @@ def update_movement_by_id(
             WHERE id = ?
             """,
             (
-                tipo, float(monto), float(precio_usd),
-                round(float(monto) * float(precio_usd), 8),
+                tipo, float(monto), float(precio_usd), float(monto_usd),
                 descripcion, now_iso(), movement_id,
             ),
         )
@@ -1263,7 +1238,6 @@ def normalize_main_option(raw_option: str) -> str:
 
 def get_account_balances(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     """Return account balances using ingresos - retiros."""
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -1286,7 +1260,6 @@ def get_account_balances(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
 def get_latest_prices(conn: sqlite3.Connection) -> dict[str, float]:
     """Get latest price_usd per currency from history."""
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -1344,7 +1317,6 @@ def show_staking_progress(conn: sqlite3.Connection, reference_date: str | None =
 
     prices = get_latest_prices(conn)
 
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -1417,7 +1389,6 @@ def get_account_detail(conn: sqlite3.Connection, account_id: int) -> dict | None
 
     Returns None if the account does not exist.
     """
-    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
     cursor.execute(
