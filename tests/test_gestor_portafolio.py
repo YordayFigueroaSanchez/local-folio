@@ -3,7 +3,7 @@ import sqlite3
 import unittest
 from contextlib import redirect_stdout
 
-from scripts import gestor_portafolio as gp
+import local_folio as gp
 
 
 class PortfolioManagerTests(unittest.TestCase):
@@ -858,8 +858,8 @@ class PortfolioManagerTests(unittest.TestCase):
             gp.initialize_database(conn)
             conn.close()
 
-            # Patch _ACTIVE_DB_PATH so backup reads from tmpdir
-            original = gp._ACTIVE_DB_PATH
+            # Point the active DB at tmpdir so backup reads from there
+            original = gp.get_db_path()
             gp.set_active_db_path(db_path)
             try:
                 backup_path = gp.create_db_backup(db_path)
@@ -880,6 +880,7 @@ class PortfolioManagerTests(unittest.TestCase):
             gp.initialize_database(conn)
             conn.close()
 
+            original = gp.get_db_path()
             gp.set_active_db_path(db_path)
             try:
                 result = gp.list_db_files(db_path)
@@ -891,7 +892,7 @@ class PortfolioManagerTests(unittest.TestCase):
                 self.assertIn("size_kb", first)
                 self.assertIn("modified_at", first)
             finally:
-                gp.set_active_db_path(gp._ACTIVE_DB_PATH)
+                gp.set_active_db_path(original)
 
     def test_validate_sqlite_file_valid(self) -> None:
         """validate_sqlite_file debe retornar True para un SQLite valido."""

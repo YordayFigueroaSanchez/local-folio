@@ -212,9 +212,15 @@ También disponible vía script PowerShell:
 
 ```
 .
+├── local_folio/                # Paquete Python (stdlib-only)
+│   ├── core.py                 # Lógica de negocio pura (cuentas, movimientos, reportes)
+│   ├── db.py                   # Conexión SQLite, esquema, migraciones y backups
+│   ├── prices.py               # Cliente CoinGecko y snapshots de precios
+│   ├── cli.py                  # Menú interactivo de consola
+│   ├── server.py               # Servidor HTTP local + API REST
 ├── scripts/
-│   ├── gestor_portafolio.py    # Lógica de negocio y CLI
-│   ├── web_ui_server.py        # Servidor HTTP local + API REST
+│   ├── gestor_portafolio.py    # Shim de compatibilidad → local_folio.cli
+│   ├── web_ui_server.py        # Shim de compatibilidad → local_folio.server
 │   ├── mi_portafolio.db        # Base de datos SQLite (autogenerada)
 │   ├── backups/                # Backups manuales de la DB
 ├── web/
@@ -226,6 +232,13 @@ También disponible vía script PowerShell:
 │   ├── test_gestor_portafolio.py
 ├── run_web_ui.ps1              # Launcher PowerShell
 └── pyproject.toml
+```
+
+También se puede lanzar directamente desde el paquete:
+
+```bash
+uv run python -m local_folio.server   # interfaz web
+uv run python -m local_folio.cli     # CLI interactiva
 ```
 
 ---
