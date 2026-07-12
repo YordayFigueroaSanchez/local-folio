@@ -191,7 +191,7 @@ def _consolidated_report(conn: sqlite3.Connection) -> dict:
         account_id = int(row["id"])
         symbol = str(row["moneda"]).upper()
         balance = float(row["saldo"])
-        price_usd, _ = prices.get(symbol, (0.0, 0.0))
+        price_usd = prices.get(symbol, 0.0)
         usd_source = "snapshot"
         snapshot_at = None
         if symbol in snapshot_meta_by_symbol:
@@ -260,7 +260,7 @@ def _staking_progress(conn: sqlite3.Connection) -> list[dict]:
         rewards_native = float(row["rewards_30d_native"])
         symbol = str(row["moneda"]).upper()
 
-        current_price, _ = prices.get(symbol, (0.0, 1.0))
+        current_price = prices.get(symbol, 0.0)
         rewards_usd = rewards_native * current_price
         progress = (rewards_usd / target * 100.0) if target > 0 else 0.0
 
@@ -581,36 +581,25 @@ class PortfolioRequestHandler(BaseHTTPRequestHandler):
 
         try:
             symbol = currency_raw.upper()
-            prices = gp.fetch_market_prices(symbol)
+            precio_usd = gp.fetch_market_prices(symbol)
 
-            # Fallback path: if main fetch fails, try direct CoinGecko lookup for known symbols.
-            if prices is None:
+            # Retry once: fetch_market_prices already handles unsupported symbols,
+            # so a second direct lookup only helps on transient network errors.
+            if precio_usd is None:
                 try:
-                    if symbol == "USD":
-                        prices = (1.0, 1.0)
-                    elif symbol == "UYU":
-                        prices = None
-                    else:
-                        coin_id = gp.SYMBOL_TO_COINGECKO_ID.get(symbol)
-                        if coin_id is None and symbol == "ONT":
-                            coin_id = "ontology"
-
-                        if coin_id:
-                            query_params = parse.urlencode({"ids": coin_id, "vs_currencies": "usd"})
-                            url = f"{gp.COINGECKO_API_URL}?{query_params}"
-                            data = gp.fetch_json(url)
-                            precio_usd = float(data[coin_id]["usd"])
-                            if precio_usd > 0:
-                                prices = (precio_usd, 1.0)
+                    coin_id = gp.SYMBOL_TO_COINGECKO_ID.get(symbol)
+                    if coin_id:
+                        query_params = parse.urlencode({"ids": coin_id, "vs_currencies": "usd"})
+                        url = f"{gp.COINGECKO_API_URL}?{query_params}"
+                        data = gp.fetch_json(url)
+                        value = float(data[coin_id]["usd"])
+                        if value > 0:
+                            precio_usd = value
                 except Exception:
-                    prices = None
+                    precio_usd = None
 
-            if prices is None:
-                # API failed or unsupported currency → return null
-                _response(self, {"ok": True, "precio_usd": None, "usd_uyu": None})
-            else:
-                precio_usd, _ = prices
-                _response(self, {"ok": True, "precio_usd": precio_usd, "usd_uyu": 1.0})
+            # precio_usd is None when the API failed or the currency is unsupported
+            _response(self, {"ok": True, "precio_usd": precio_usd})
         except Exception as exc:
             # Catch any unexpected errors
             _error(self, f"Error fetching prices: {exc}", status=HTTPStatus.INTERNAL_SERVER_ERROR)
@@ -713,9 +702,7 @@ class PortfolioRequestHandler(BaseHTTPRequestHandler):
             is_valid, error_msg = gp.validate_coherence(
                 amount=amount,
                 monto_usd=monto_usd,
-                monto_uyu=0.0,
                 precio_usd=price_usd,
-                usd_uyu=1.0,
                 source_field=source_field
             )
             

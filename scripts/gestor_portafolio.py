@@ -415,8 +415,6 @@ def fetch_crypto_prices_usd(symbols: list[str]) -> dict[str, float]:
         if symbol == "USD":
             symbol_to_price[symbol] = 1.0
             continue
-        if symbol == "UYU":
-            continue
 
         coin_id = SYMBOL_TO_COINGECKO_ID.get(symbol)
         if coin_id is None:
@@ -612,13 +610,13 @@ def show_account_search(conn: sqlite3.Connection) -> None:
 def get_precision_for_currency(symbol: str) -> int:
     """
     Return the number of decimal places for a given currency symbol.
-    
+
     Args:
         symbol: Currency symbol (e.g., 'BTC', 'USD', 'USDT')
-    
+
     Returns:
         int: 8 for all currencies
-    
+
     Examples:
         >>> get_precision_for_currency('BTC')
         8
@@ -635,17 +633,11 @@ def calculate_conversions(
     *,
     amount: float | None = None,
     monto_usd: float | None = None,
-    monto_uyu: float | None = None,
     precio_usd: float,
-    usd_uyu: float,
     currency_symbol: str,
     source_field: str
 ) -> dict[str, float]:
-    """Calculate bidirectional conversions between native currency and USD.
-
-    Keeps legacy parameters for backward compatibility, but the active flow
-    is USD-only and always returns `monto_uyu = 0.0`.
-    """
+    """Calculate bidirectional conversions between native currency and USD."""
     if precio_usd <= 0:
         raise ValueError("precio_usd debe ser mayor que 0")
     if source_field not in {'amount', 'monto_usd'}:
@@ -663,7 +655,6 @@ def calculate_conversions(
     return {
         'amount': amount_value,
         'monto_usd': monto_usd_value,
-        'monto_uyu': 0.0,
     }
 
 
@@ -671,38 +662,32 @@ def validate_coherence(
     *,
     amount: float,
     monto_usd: float,
-    monto_uyu: float,
     precio_usd: float,
-    usd_uyu: float,
     source_field: str,
     tolerance: float = 0.01
 ) -> tuple[bool, str | None]:
     """
     Validate mathematical coherence between entered value and calculated values.
-    
+
     Only validates the relevant pair based on which field the user entered.
-    
+
     Args:
         amount: Amount in native currency
         monto_usd: Amount in USD
-        monto_uyu: Amount in UYU
         precio_usd: Price USD of the currency
-        usd_uyu: Exchange rate UYU per USD
         source_field: Field that user entered
         tolerance: Acceptable error margin (default 0.01)
-    
+
     Returns:
         (is_valid, error_message)
         - is_valid: True if coherent, False if not
         - error_message: None if valid, description of error if invalid
-    
+
     Examples:
         >>> validate_coherence(
         ...     amount=0.01,
         ...     monto_usd=950.0,
-        ...     monto_uyu=38475.0,
         ...     precio_usd=95000.0,
-        ...     usd_uyu=40.5,
         ...     source_field='amount'
         ... )
         (True, None)
@@ -741,60 +726,51 @@ def validate_coherence(
     return (True, None)
 
 
-def fetch_market_prices(currency_symbol: str) -> tuple[float, float] | None:
+def fetch_market_prices(currency_symbol: str) -> float | None:
     """
-    Fetch market prices for a specific currency.
-    
+    Fetch the USD market price for a specific currency.
+
     Queries CoinGecko for COIN/USD price.
-    Returns a legacy second tuple value fixed to 1.0 for compatibility.
-    
+
     Args:
         currency_symbol: Currency symbol (e.g., 'BTC', 'ETH', 'USD')
-    
+
     Returns:
-        (precio_usd, 1.0) if successful
+        precio_usd if successful
         None if fails (timeout, network error, unsupported currency)
-    
-    Timeout: 12 seconds per API (24 seconds total maximum)
-    
+
+    Timeout: 12 seconds per API request
+
     Examples:
-        >>> prices = fetch_market_prices('BTC')
-        >>> if prices:
-        ...     precio_usd, usd_uyu = prices
-        ...     print(f"BTC: ${precio_usd}, UYU per USD: {usd_uyu}")
+        >>> precio_usd = fetch_market_prices('BTC')
+        >>> if precio_usd:
+        ...     print(f"BTC: ${precio_usd}")
     """
     try:
         # Special case: USD account
         if currency_symbol.upper() == 'USD':
-            return (1.0, 1.0)
+            return 1.0
 
-        # UYU is no longer supported in the active USD-only flow.
-        if currency_symbol.upper() == 'UYU':
-            return None
-        
         # Crypto: query CoinGecko
         symbol_upper = currency_symbol.upper()
         coin_id = SYMBOL_TO_COINGECKO_ID.get(symbol_upper)
-        if coin_id is None and symbol_upper == "ONT":
-            # Defensive fallback for ONT to avoid null pricing in legacy runtimes.
-            coin_id = "ontology"
         if coin_id is None:
             # Unsupported currency
             return None
-        
+
         # Fetch crypto price in USD directly from CoinGecko id
         query_params = parse.urlencode({"ids": coin_id, "vs_currencies": "usd"})
         url = f"{COINGECKO_API_URL}?{query_params}"
         data = fetch_json(url)
         precio_usd = float(data[coin_id]["usd"])
-        
+
         if precio_usd <= 0:
             # Failed to get price
             return None
-        
-        return (precio_usd, 1.0)
-        
-    except (error.URLError, TimeoutError, ValueError, KeyError) as e:
+
+        return precio_usd
+
+    except (error.URLError, TimeoutError, ValueError, KeyError):
         # Any error → return None (fallback to manual entry)
         return None
 
@@ -848,13 +824,10 @@ def register_transaction(conn: sqlite3.Connection) -> None:
 
     # Step 2: Fetch market prices
     print("Obteniendo precios...")
-    prices = fetch_market_prices(currency)
-    
-    if prices is None:
+    suggested_price_usd = fetch_market_prices(currency)
+
+    if suggested_price_usd is None:
         print("No se pudieron obtener precios automáticamente. Por favor ingrese manualmente.")
-        suggested_price_usd = None
-    else:
-        suggested_price_usd, _ = prices
     
     # Step 3: Get basic data
     tipo = input("Tipo (ingreso/retiro/reward): ").strip().lower()
@@ -919,7 +892,6 @@ def register_transaction(conn: sqlite3.Connection) -> None:
                 result = calculate_conversions(
                     amount=monto_entered,
                     precio_usd=precio_usd,
-                    usd_uyu=1.0,
                     currency_symbol=currency,
                     source_field='amount'
                 )
@@ -927,7 +899,6 @@ def register_transaction(conn: sqlite3.Connection) -> None:
                 result = calculate_conversions(
                     monto_usd=monto_entered,
                     precio_usd=precio_usd,
-                    usd_uyu=1.0,
                     currency_symbol=currency,
                     source_field='monto_usd'
                 )
@@ -948,9 +919,7 @@ def register_transaction(conn: sqlite3.Connection) -> None:
         is_valid, error_msg = validate_coherence(
             amount=monto,
             monto_usd=monto_usd,
-            monto_uyu=0.0,
             precio_usd=precio_usd,
-            usd_uyu=1.0,
             source_field=source_field
         )
         
@@ -1315,8 +1284,8 @@ def get_account_balances(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return cursor.fetchall()
 
 
-def get_latest_prices(conn: sqlite3.Connection) -> dict[str, tuple[float, float]]:
-    """Get latest price_usd per currency from history (second tuple value kept for compatibility)."""
+def get_latest_prices(conn: sqlite3.Connection) -> dict[str, float]:
+    """Get latest price_usd per currency from history."""
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute(
@@ -1331,10 +1300,7 @@ def get_latest_prices(conn: sqlite3.Connection) -> dict[str, tuple[float, float]
         ON hp.moneda = latest.moneda AND hp.fecha_calculo = latest.max_fecha
         """
     )
-    return {
-        row["moneda"]: (float(row["precio_usd"]), 1.0)
-        for row in cursor.fetchall()
-    }
+    return {row["moneda"]: float(row["precio_usd"]) for row in cursor.fetchall()}
 
 
 def show_consolidated_portfolio(conn: sqlite3.Connection) -> None:
@@ -1356,10 +1322,7 @@ def show_consolidated_portfolio(conn: sqlite3.Connection) -> None:
         moneda = row["moneda"].upper()
         saldo = float(row["saldo"])
 
-        if moneda in prices:
-            precio_usd, _ = prices[moneda]
-        else:
-            precio_usd, _ = 0.0, 1.0
+        precio_usd = prices.get(moneda, 0.0)
 
         valor_usd = saldo * precio_usd
 
@@ -1415,7 +1378,7 @@ def show_staking_progress(conn: sqlite3.Connection, reference_date: str | None =
         rewards_native = float(row["rewards_30d_native"])
         moneda = str(row["moneda"]).upper()
 
-        current_price, _ = prices.get(moneda, (0.0, 1.0))
+        current_price = prices.get(moneda, 0.0)
         rewards_usd = rewards_native * current_price
         progreso = (rewards_usd * 100.0 / objetivo) if objetivo > 0 else 0.0
 
@@ -1509,7 +1472,7 @@ def get_account_detail(conn: sqlite3.Connection, account_id: int) -> dict | None
 
     prices = get_latest_prices(conn)
     symbol = str(account_row["moneda"]).upper()
-    price_usd, _ = prices.get(symbol, (0.0, 1.0))
+    price_usd = prices.get(symbol, 0.0)
 
     # Fallback: last transaction price.
     if price_usd <= 0 and tx_rows:

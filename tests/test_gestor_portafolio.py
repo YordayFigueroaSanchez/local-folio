@@ -41,7 +41,6 @@ class PortfolioManagerTests(unittest.TestCase):
         description: str = "",
         date_text: str = "2026-01-01 00:00:00",
         price_usd: float = 1.0,
-        usd_uyu: float = 40.0,
     ) -> None:
         monto_usd = round(float(amount) * float(price_usd), 8)
         self.conn.execute(
@@ -61,7 +60,7 @@ class PortfolioManagerTests(unittest.TestCase):
         )
         self.conn.commit()
 
-    def _insert_price(self, symbol: str, usd_price: float, uyu_per_usd: float) -> None:
+    def _insert_price(self, symbol: str, usd_price: float) -> None:
         self.conn.execute(
             """
             INSERT INTO historial_precios (fecha_calculo, moneda, precio_usd)
@@ -81,7 +80,6 @@ class PortfolioManagerTests(unittest.TestCase):
             description="compra inicial",
             date_text="2026-05-25 09:00:00",
             price_usd=68000.0,
-            usd_uyu=40.20,
         )
         self._insert_tx(
             account_id,
@@ -90,7 +88,6 @@ class PortfolioManagerTests(unittest.TestCase):
             description="segunda compra",
             date_text="2026-05-26 11:30:00",
             price_usd=70500.0,
-            usd_uyu=40.35,
         )
         self._insert_tx(
             account_id,
@@ -99,7 +96,6 @@ class PortfolioManagerTests(unittest.TestCase):
             description="venta parcial",
             date_text="2026-05-27 16:45:00",
             price_usd=71200.0,
-            usd_uyu=40.10,
         )
 
         balances = gp.get_account_balances(self.conn)
@@ -125,24 +121,24 @@ class PortfolioManagerTests(unittest.TestCase):
         one_id = self._create_account("ONE Test", "ONE", allows_stake=1, target=300.0)
 
         ont_transactions = [
-            (100.0, "ingreso", "2026-05-25 09:00:00", 0.20, 40.0, "compra inicial"),
-            (12.5, "reward", "2026-05-26 09:00:00", 0.21, 40.1, "reward 1"),
-            (10.0, "reward", "2026-05-27 09:00:00", 0.22, 40.2, "reward 2"),
-            (8.5, "reward", "2026-05-28 09:00:00", 0.23, 40.3, "reward 3"),
-            (9.0, "reward", "2026-05-29 09:00:00", 0.24, 40.4, "reward 4"),
-            (10.0, "reward", "2026-05-30 09:00:00", 0.25, 40.5, "reward 5"),
+            (100.0, "ingreso", "2026-05-25 09:00:00", 0.20, "compra inicial"),
+            (12.5, "reward", "2026-05-26 09:00:00", 0.21, "reward 1"),
+            (10.0, "reward", "2026-05-27 09:00:00", 0.22, "reward 2"),
+            (8.5, "reward", "2026-05-28 09:00:00", 0.23, "reward 3"),
+            (9.0, "reward", "2026-05-29 09:00:00", 0.24, "reward 4"),
+            (10.0, "reward", "2026-05-30 09:00:00", 0.25, "reward 5"),
         ]
         one_transactions = [
-            (200.0, "ingreso", "2026-05-25 10:00:00", 0.015, 40.0, "compra inicial"),
-            (15.0, "reward", "2026-05-26 10:00:00", 0.016, 40.1, "reward 1"),
-            (12.0, "reward", "2026-05-27 10:00:00", 0.017, 40.2, "reward 2"),
-            (10.0, "reward", "2026-05-28 10:00:00", 0.018, 40.3, "reward 3"),
-            (8.0, "reward", "2026-05-29 10:00:00", 0.019, 40.4, "reward 4"),
-            (5.0, "reward", "2026-05-30 10:00:00", 0.020, 40.5, "reward 5"),
-            (5.0, "reward", "2026-05-31 10:00:00", 0.021, 40.6, "reward 6"),
+            (200.0, "ingreso", "2026-05-25 10:00:00", 0.015, "compra inicial"),
+            (15.0, "reward", "2026-05-26 10:00:00", 0.016, "reward 1"),
+            (12.0, "reward", "2026-05-27 10:00:00", 0.017, "reward 2"),
+            (10.0, "reward", "2026-05-28 10:00:00", 0.018, "reward 3"),
+            (8.0, "reward", "2026-05-29 10:00:00", 0.019, "reward 4"),
+            (5.0, "reward", "2026-05-30 10:00:00", 0.020, "reward 5"),
+            (5.0, "reward", "2026-05-31 10:00:00", 0.021, "reward 6"),
         ]
 
-        for amount, tx_type, date_text, price_usd, usd_uyu, description in ont_transactions:
+        for amount, tx_type, date_text, price_usd, description in ont_transactions:
             self._insert_tx(
                 ont_id,
                 amount=amount,
@@ -150,10 +146,9 @@ class PortfolioManagerTests(unittest.TestCase):
                 description=description,
                 date_text=date_text,
                 price_usd=price_usd,
-                usd_uyu=usd_uyu,
             )
 
-        for amount, tx_type, date_text, price_usd, usd_uyu, description in one_transactions:
+        for amount, tx_type, date_text, price_usd, description in one_transactions:
             self._insert_tx(
                 one_id,
                 amount=amount,
@@ -161,7 +156,6 @@ class PortfolioManagerTests(unittest.TestCase):
                 description=description,
                 date_text=date_text,
                 price_usd=price_usd,
-                usd_uyu=usd_uyu,
             )
 
         balances = gp.get_account_balances(self.conn)
@@ -188,8 +182,8 @@ class PortfolioManagerTests(unittest.TestCase):
         self.assertAlmostEqual(totals["ONT Test"], 31.44, places=2)
         self.assertAlmostEqual(totals["ONE Test"], 3.981, places=2)
 
-        self._insert_price("ONT", usd_price=0.25, uyu_per_usd=40.0)
-        self._insert_price("ONE", usd_price=0.02, uyu_per_usd=40.0)
+        self._insert_price("ONT", usd_price=0.25)
+        self._insert_price("ONE", usd_price=0.02)
 
         output = io.StringIO()
         with redirect_stdout(output):
@@ -206,24 +200,24 @@ class PortfolioManagerTests(unittest.TestCase):
         one_id = self._create_account("ONE Withdraw Test", "ONE", allows_stake=1, target=300.0)
 
         ont_transactions = [
-            (120.0, "ingreso", "2026-06-01 09:00:00", 0.20, 40.0, "compra inicial"),
-            (10.0, "reward", "2026-06-02 09:00:00", 0.21, 40.1, "reward 1"),
-            (8.0, "reward", "2026-06-03 09:00:00", 0.22, 40.2, "reward 2"),
-            (15.0, "retiro", "2026-06-04 09:00:00", 0.23, 40.3, "retiro parcial 1"),
-            (7.0, "reward", "2026-06-05 09:00:00", 0.24, 40.4, "reward 3"),
-            (5.0, "retiro", "2026-06-06 09:00:00", 0.25, 40.5, "retiro parcial 2"),
+            (120.0, "ingreso", "2026-06-01 09:00:00", 0.20, "compra inicial"),
+            (10.0, "reward", "2026-06-02 09:00:00", 0.21, "reward 1"),
+            (8.0, "reward", "2026-06-03 09:00:00", 0.22, "reward 2"),
+            (15.0, "retiro", "2026-06-04 09:00:00", 0.23, "retiro parcial 1"),
+            (7.0, "reward", "2026-06-05 09:00:00", 0.24, "reward 3"),
+            (5.0, "retiro", "2026-06-06 09:00:00", 0.25, "retiro parcial 2"),
         ]
         one_transactions = [
-            (180.0, "ingreso", "2026-06-01 10:00:00", 0.015, 40.0, "compra inicial"),
-            (20.0, "reward", "2026-06-02 10:00:00", 0.016, 40.1, "reward 1"),
-            (15.0, "reward", "2026-06-03 10:00:00", 0.017, 40.2, "reward 2"),
-            (30.0, "retiro", "2026-06-04 10:00:00", 0.018, 40.3, "retiro parcial 1"),
-            (12.0, "reward", "2026-06-05 10:00:00", 0.019, 40.4, "reward 3"),
-            (10.0, "retiro", "2026-06-06 10:00:00", 0.020, 40.5, "retiro parcial 2"),
-            (8.0, "reward", "2026-06-07 10:00:00", 0.021, 40.6, "reward 4"),
+            (180.0, "ingreso", "2026-06-01 10:00:00", 0.015, "compra inicial"),
+            (20.0, "reward", "2026-06-02 10:00:00", 0.016, "reward 1"),
+            (15.0, "reward", "2026-06-03 10:00:00", 0.017, "reward 2"),
+            (30.0, "retiro", "2026-06-04 10:00:00", 0.018, "retiro parcial 1"),
+            (12.0, "reward", "2026-06-05 10:00:00", 0.019, "reward 3"),
+            (10.0, "retiro", "2026-06-06 10:00:00", 0.020, "retiro parcial 2"),
+            (8.0, "reward", "2026-06-07 10:00:00", 0.021, "reward 4"),
         ]
 
-        for amount, tx_type, date_text, price_usd, usd_uyu, description in ont_transactions:
+        for amount, tx_type, date_text, price_usd, description in ont_transactions:
             self._insert_tx(
                 ont_id,
                 amount=amount,
@@ -231,10 +225,9 @@ class PortfolioManagerTests(unittest.TestCase):
                 description=description,
                 date_text=date_text,
                 price_usd=price_usd,
-                usd_uyu=usd_uyu,
             )
 
-        for amount, tx_type, date_text, price_usd, usd_uyu, description in one_transactions:
+        for amount, tx_type, date_text, price_usd, description in one_transactions:
             self._insert_tx(
                 one_id,
                 amount=amount,
@@ -242,7 +235,6 @@ class PortfolioManagerTests(unittest.TestCase):
                 description=description,
                 date_text=date_text,
                 price_usd=price_usd,
-                usd_uyu=usd_uyu,
             )
 
         balances = gp.get_account_balances(self.conn)
@@ -272,8 +264,8 @@ class PortfolioManagerTests(unittest.TestCase):
         self.assertAlmostEqual(totals["ONT Withdraw Test"], 24.84, places=2)
         self.assertAlmostEqual(totals["ONE Withdraw Test"], 2.931, places=2)
 
-        self._insert_price("ONT", usd_price=0.24, uyu_per_usd=40.0)
-        self._insert_price("ONE", usd_price=0.02, uyu_per_usd=40.0)
+        self._insert_price("ONT", usd_price=0.24)
+        self._insert_price("ONE", usd_price=0.02)
 
         output = io.StringIO()
         with redirect_stdout(output):
@@ -297,7 +289,6 @@ class PortfolioManagerTests(unittest.TestCase):
                 description=f"target {idx}",
                 date_text=f"2026-07-0{idx} 10:00:00",
                 price_usd=70000.0,
-                usd_uyu=40.0,
             )
 
         self._insert_tx(
@@ -307,7 +298,6 @@ class PortfolioManagerTests(unittest.TestCase):
             description="other",
             date_text="2026-07-10 10:00:00",
             price_usd=3000.0,
-            usd_uyu=40.0,
         )
 
         rows = gp.get_recent_account_movements(self.conn, account_id=target_id, limit=3)
@@ -324,7 +314,6 @@ class PortfolioManagerTests(unittest.TestCase):
             tx_type="ingreso",
             description="before",
             price_usd=70000.0,
-            usd_uyu=40.0,
         )
 
         row = gp.get_recent_account_movements(self.conn, account_id=account_id, limit=1)[0]
@@ -357,7 +346,6 @@ class PortfolioManagerTests(unittest.TestCase):
             tx_type="ingreso",
             description="to delete",
             price_usd=3000.0,
-            usd_uyu=40.0,
         )
 
         row = gp.get_recent_account_movements(self.conn, account_id=account_id, limit=1)[0]
@@ -436,8 +424,8 @@ class PortfolioManagerTests(unittest.TestCase):
         self._insert_tx(eth_id, 0.5, "retiro", "gasto")
         self._insert_tx(usd_id, 500.0, "ingreso", "transferencia")
 
-        self._insert_price("ETH", usd_price=3000.0, uyu_per_usd=40.0)
-        self._insert_price("USD", usd_price=1.0, uyu_per_usd=40.0)
+        self._insert_price("ETH", usd_price=3000.0)
+        self._insert_price("USD", usd_price=1.0)
 
         output = io.StringIO()
         with redirect_stdout(output):
@@ -457,7 +445,7 @@ class PortfolioManagerTests(unittest.TestCase):
                         date_text="2026-05-25 10:00:00")
         self._insert_tx(account_id, 2.0, "reward", "reward 2",
                         date_text="2026-05-28 10:00:00")
-        self._insert_price("ONT", usd_price=5.0, uyu_per_usd=40.0)
+        self._insert_price("ONT", usd_price=5.0)
 
         output = io.StringIO()
         with redirect_stdout(output):
@@ -482,34 +470,29 @@ class PortfolioManagerTests(unittest.TestCase):
         result = gp.calculate_conversions(
             amount=1.0,
             precio_usd=95000.0,
-            usd_uyu=40.0,
             currency_symbol="BTC",
             source_field="amount"
         )
         self.assertAlmostEqual(result["amount"], 1.0, places=8)
         self.assertAlmostEqual(result["monto_usd"], 95000.0, places=8)
-        self.assertAlmostEqual(result["monto_uyu"], 0.0, places=8)
 
     def test_calculate_conversions_from_usd(self) -> None:
         """Test conversion starting from USD amount."""
         result = gp.calculate_conversions(
             monto_usd=1000.0,
             precio_usd=50000.0,
-            usd_uyu=40.0,
             currency_symbol="BTC",
             source_field="monto_usd"
         )
         self.assertAlmostEqual(result["amount"], 0.02, places=8)
         self.assertAlmostEqual(result["monto_usd"], 1000.0, places=8)
-        self.assertAlmostEqual(result["monto_uyu"], 0.0, places=8)
 
-    def test_calculate_conversions_from_uyu(self) -> None:
-        """Test UYU source is no longer supported in USD-only mode."""
+    def test_calculate_conversions_invalid_source_field(self) -> None:
+        """Test unsupported source_field raises ValueError."""
         with self.assertRaises(ValueError):
             gp.calculate_conversions(
-                monto_uyu=2000000.0,
+                amount=1.0,
                 precio_usd=100000.0,
-                usd_uyu=40.0,
                 currency_symbol="BTC",
                 source_field="monto_uyu"
             )
@@ -519,26 +502,11 @@ class PortfolioManagerTests(unittest.TestCase):
         result = gp.calculate_conversions(
             amount=500.0,
             precio_usd=1.0,
-            usd_uyu=40.0,
             currency_symbol="USD",
             source_field="amount"
         )
         self.assertAlmostEqual(result["amount"], 500.0, places=8)
         self.assertAlmostEqual(result["monto_usd"], 500.0, places=8)
-        self.assertAlmostEqual(result["monto_uyu"], 0.0, places=8)
-
-    def test_calculate_conversions_uyu_account(self) -> None:
-        """Test UYU account input still resolves USD amount in USD-only flow."""
-        result = gp.calculate_conversions(
-            amount=40000.0,
-            precio_usd=0.025,  # 1/40
-            usd_uyu=40.0,
-            currency_symbol="UYU",
-            source_field="amount"
-        )
-        self.assertAlmostEqual(result["amount"], 40000.0, places=8)
-        self.assertAlmostEqual(result["monto_usd"], 1000.0, places=8)
-        self.assertAlmostEqual(result["monto_uyu"], 0.0, places=8)
 
     # =========================================================================
     # PASO 22: Tests for validate_coherence()
@@ -549,9 +517,7 @@ class PortfolioManagerTests(unittest.TestCase):
         is_valid, error_msg = gp.validate_coherence(
             amount=1.0,
             monto_usd=95000.0,
-            monto_uyu=3800000.0,
             precio_usd=95000.0,
-            usd_uyu=40.0,
             source_field="amount"
         )
         self.assertTrue(is_valid)
@@ -562,9 +528,7 @@ class PortfolioManagerTests(unittest.TestCase):
         is_valid, error_msg = gp.validate_coherence(
             amount=1.0,
             monto_usd=100000.0,  # Should be 95000
-            monto_uyu=3800000.0,
             precio_usd=95000.0,
-            usd_uyu=40.0,
             source_field="amount"
         )
         self.assertFalse(is_valid)
@@ -576,22 +540,18 @@ class PortfolioManagerTests(unittest.TestCase):
         is_valid, error_msg = gp.validate_coherence(
             amount=2.0,  # Should be ~1.05
             monto_usd=100000.0,
-            monto_uyu=4000000.0,
             precio_usd=95000.0,
-            usd_uyu=40.0,
             source_field="monto_usd"
         )
         self.assertFalse(is_valid)
         self.assertIsNotNone(error_msg)
 
-    def test_validate_coherence_invalid_uyu(self) -> None:
-        """Test validation fails when using unsupported UYU source field."""
+    def test_validate_coherence_invalid_source_field(self) -> None:
+        """Test validation fails when using an unsupported source field."""
         is_valid, error_msg = gp.validate_coherence(
-            amount=2.0,  # Should be 1.0 (3800000 / 40 / 95000 = 1.0)
+            amount=2.0,
             monto_usd=95000.0,
-            monto_uyu=3800000.0,
             precio_usd=95000.0,
-            usd_uyu=40.0,
             source_field="monto_uyu"
         )
         self.assertFalse(is_valid)
@@ -603,9 +563,7 @@ class PortfolioManagerTests(unittest.TestCase):
         is_valid, error_msg = gp.validate_coherence(
             amount=1.0,
             monto_usd=95000.009,  # Within 0.01 tolerance
-            monto_uyu=3800000.0,
             precio_usd=95000.0,
-            usd_uyu=40.0,
             source_field="amount"
         )
         self.assertTrue(is_valid)
@@ -616,25 +574,15 @@ class PortfolioManagerTests(unittest.TestCase):
     # =========================================================================
 
     def test_fetch_market_prices_usd_special(self) -> None:
-        """Test USD special case returns (1.0, 1.0) in USD-only mode."""
-        prices = gp.fetch_market_prices("USD")
-        self.assertIsNotNone(prices)
-        precio_usd, usd_uyu = prices
+        """Test USD special case returns 1.0 without hitting the network."""
+        precio_usd = gp.fetch_market_prices("USD")
+        self.assertIsNotNone(precio_usd)
         self.assertAlmostEqual(precio_usd, 1.0, places=8)
-        self.assertAlmostEqual(usd_uyu, 1.0, places=8)
-
-    def test_fetch_market_prices_uyu_special(self) -> None:
-        """Test UYU special case is unsupported in USD-only mode."""
-        prices = gp.fetch_market_prices("UYU")
-        self.assertIsNone(prices)
 
     def test_fetch_market_prices_unsupported_currency(self) -> None:
         """Test unsupported currency returns None (fallback behavior)."""
-        prices = gp.fetch_market_prices("UNSUPPORTED_XYZ")
-        # Should return None or fail gracefully
-        # Implementation may vary; adjust based on actual behavior
-        if prices is None:
-            self.assertIsNone(prices)
+        self.assertIsNone(gp.fetch_market_prices("UYU"))
+        self.assertIsNone(gp.fetch_market_prices("UNSUPPORTED_XYZ"))
 
     # =========================================================================
     # PASO 24: Tests for ensure_multi_currency_columns()
