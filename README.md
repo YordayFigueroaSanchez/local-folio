@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12%2B-blue?logo=python&logoColor=white)
 ![Version](https://img.shields.io/badge/Version-0.0.1-informational)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Tests](https://img.shields.io/badge/Tests-43%20passing-brightgreen)
+[![Tests](https://github.com/YordayFigueroaSanchez/local-folio/actions/workflows/tests.yml/badge.svg)](https://github.com/YordayFigueroaSanchez/local-folio/actions/workflows/tests.yml)
 
 ---
 
@@ -236,7 +236,7 @@ También disponible vía script PowerShell:
 uv run python -m unittest discover tests
 ```
 
-43 tests, sin dependencias externas.
+Sin dependencias externas. La suite corre automáticamente en GitHub Actions (Linux y Windows, Python 3.12 y 3.13) en cada push y pull request a `main`.
 
 ---
 

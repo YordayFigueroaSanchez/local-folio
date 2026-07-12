@@ -217,7 +217,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .aidlc-rule-details/
-.github/
+# Ignorar artefactos locales de .github pero versionar los workflows de CI
+.github/*
+!.github/workflows/
 
 # Project user data — personal financial records, not for version control
 registro/recompensas.csv
