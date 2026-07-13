@@ -615,7 +615,7 @@ class PortfolioRequestHandler(BaseHTTPRequestHandler):
     def _handle_create_movement(self) -> None:
         try:
             body = _json_body(self)
-            account_id = int(body.get("account_id"))
+            account_id = int(body.get("account_id", 0))
             tx_type = str(body.get("type", "")).strip().lower()
             amount = float(body.get("amount", 0))
             price_usd = float(body.get("price_usd", 0))

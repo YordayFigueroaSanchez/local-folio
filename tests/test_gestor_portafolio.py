@@ -861,6 +861,7 @@ class PortfolioManagerTests(unittest.TestCase):
             # Point the active DB at tmpdir so backup reads from there
             original = gp.get_db_path()
             gp.set_active_db_path(db_path)
+            backup_path = None
             try:
                 backup_path = gp.create_db_backup(db_path)
                 self.assertTrue(os.path.isfile(backup_path))
@@ -868,6 +869,11 @@ class PortfolioManagerTests(unittest.TestCase):
                 self.assertIn("mi_portafolio_", os.path.basename(backup_path))
             finally:
                 gp.set_active_db_path(original)
+                # create_db_backup always writes to the real backups/ dir
+                # (independent of the tempdir source), so it must be cleaned
+                # up explicitly to avoid polluting it on every test run.
+                if backup_path and os.path.isfile(backup_path):
+                    os.remove(backup_path)
 
     def test_list_db_files_includes_active(self) -> None:
         """list_db_files debe incluir al menos la base de datos activa."""
