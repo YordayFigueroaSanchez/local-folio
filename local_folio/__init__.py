@@ -54,7 +54,9 @@ from .logging_config import configure_logging
 from .prices import (
     COINGECKO_API_URL,
     HTTP_TIMEOUT,
+    PRICE_CACHE_TTL_SECONDS,
     SYMBOL_TO_COINGECKO_ID,
+    clear_price_cache,
     fetch_crypto_prices_usd,
     fetch_json,
     fetch_market_prices,
@@ -104,7 +106,9 @@ __all__ = [
     # prices
     "COINGECKO_API_URL",
     "HTTP_TIMEOUT",
+    "PRICE_CACHE_TTL_SECONDS",
     "SYMBOL_TO_COINGECKO_ID",
+    "clear_price_cache",
     "fetch_crypto_prices_usd",
     "fetch_json",
     "fetch_market_prices",

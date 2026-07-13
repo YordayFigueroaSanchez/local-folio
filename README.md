@@ -182,6 +182,10 @@ LOCAL_FOLIO_LOG_LEVEL=WARNING uv run python scripts/web_ui_server.py # solo avis
 
 Los mensajes interactivos de la CLI (menús, prompts, resúmenes) no pasan por logging — son la interfaz de usuario de la aplicación, no diagnóstico.
 
+### Caché de precios (CoinGecko)
+
+`GET /api/prices?currency=X` (usado por la UI al abrir el formulario de movimiento y al ver la sección Mercado) cachea en memoria el resultado por símbolo durante 30 segundos, para no golpear el rate limit de la API gratuita de CoinGecko con consultas repetidas de la misma moneda. El refresco explícito (`POST /api/prices/update`, botón "Actualizar Precios") **no** usa este caché: siempre consulta datos frescos. El TTL es ajustable con `LOCAL_FOLIO_PRICE_CACHE_TTL` (segundos).
+
 ---
 
 ## Screenshots

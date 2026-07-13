@@ -2,7 +2,10 @@
 
 import json
 import logging
+import os
 import sqlite3
+import threading
+import time
 from urllib import error, parse, request
 
 from .core import now_iso
@@ -14,6 +17,43 @@ logger = logging.getLogger("local_folio.prices")
 
 COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price"
 HTTP_TIMEOUT = 12.0
+
+# Caché en memoria para fetch_market_prices() (consultas de un solo
+# simbolo, tipicamente disparadas por la UI al abrir el formulario de
+# movimiento o la vista de Mercado). fetch_crypto_prices_usd()/
+# update_prices_from_internet() NO usan este cache: representan un
+# refresco explicito pedido por el usuario y siempre deben ir a la red.
+PRICE_CACHE_TTL_SECONDS = float(os.environ.get("LOCAL_FOLIO_PRICE_CACHE_TTL", "30"))
+
+_price_cache: dict[str, tuple[float, float]] = {}
+_price_cache_lock = threading.Lock()
+
+
+def _cache_now() -> float:
+    return time.monotonic()
+
+
+def clear_price_cache() -> None:
+    """Clear the in-memory price cache. Mainly useful for tests."""
+    with _price_cache_lock:
+        _price_cache.clear()
+
+
+def _get_cached_price(symbol: str) -> float | None:
+    with _price_cache_lock:
+        entry = _price_cache.get(symbol)
+        if entry is None:
+            return None
+        price, expires_at = entry
+        if _cache_now() >= expires_at:
+            del _price_cache[symbol]
+            return None
+        return price
+
+
+def _set_cached_price(symbol: str, price: float) -> None:
+    with _price_cache_lock:
+        _price_cache[symbol] = (price, _cache_now() + PRICE_CACHE_TTL_SECONDS)
 
 SYMBOL_TO_COINGECKO_ID = {
     "BTC": "bitcoin",
@@ -140,7 +180,11 @@ def fetch_market_prices(currency_symbol: str) -> float | None:
     """
     Fetch the USD market price for a specific currency.
 
-    Queries CoinGecko for COIN/USD price.
+    Queries CoinGecko for COIN/USD price, using an in-memory cache
+    (PRICE_CACHE_TTL_SECONDS) to avoid hitting CoinGecko's rate limit
+    when the same symbol is requested repeatedly in a short window.
+    Only successful lookups are cached; a failure is retried on the
+    next call instead of being remembered for the TTL window.
 
     Args:
         currency_symbol: Currency symbol (e.g., 'BTC', 'ETH', 'USD')
@@ -156,13 +200,17 @@ def fetch_market_prices(currency_symbol: str) -> float | None:
         >>> if precio_usd:
         ...     print(f"BTC: ${precio_usd}")
     """
-    try:
-        # Special case: USD account
-        if currency_symbol.upper() == 'USD':
-            return 1.0
+    # Special case: USD account (no network, no need to cache)
+    symbol_upper = currency_symbol.upper()
+    if symbol_upper == 'USD':
+        return 1.0
 
+    cached = _get_cached_price(symbol_upper)
+    if cached is not None:
+        return cached
+
+    try:
         # Crypto: query CoinGecko
-        symbol_upper = currency_symbol.upper()
         coin_id = SYMBOL_TO_COINGECKO_ID.get(symbol_upper)
         if coin_id is None:
             # Unsupported currency
@@ -178,6 +226,7 @@ def fetch_market_prices(currency_symbol: str) -> float | None:
             # Failed to get price
             return None
 
+        _set_cached_price(symbol_upper, precio_usd)
         return precio_usd
 
     except (error.URLError, TimeoutError, ValueError, KeyError):
