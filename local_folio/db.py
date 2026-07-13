@@ -1,20 +1,98 @@
 """Conexión SQLite, esquema, migraciones y backups de la base de datos."""
 
 import datetime as dt
+import logging
 import os
+import shutil
 import sqlite3
 
+# Nombre explicito (no __name__): mismo motivo que en server.py/prices.py.
+logger = logging.getLogger("local_folio.db")
+
 DB_FILENAME = "mi_portafolio.db"
+_ACTIVE_DB_CONFIG_NAME = "active_db.txt"
 
 _PACKAGE_DIR: str = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT: str = os.path.dirname(_PACKAGE_DIR)
-# Los datos (DB, backups, active_db.txt) viven historicamente en scripts/.
-# Moverlos a un directorio data/ propio es un cambio pendiente separado,
-# para no invalidar instalaciones existentes.
-DATA_DIR: str = os.path.join(PROJECT_ROOT, "scripts")
+DATA_DIR: str = os.path.join(PROJECT_ROOT, "data")
 
-_ACTIVE_DB_CONFIG: str = os.path.join(DATA_DIR, "active_db.txt")
+# Ubicacion anterior a esta migracion (los datos vivian junto al codigo,
+# en scripts/). _migrate_legacy_data_dir() los mueve a DATA_DIR una sola
+# vez, de forma idempotente, en el primer import despues de actualizar.
+_LEGACY_DATA_DIR: str = os.path.join(PROJECT_ROOT, "scripts")
+
+_ACTIVE_DB_CONFIG: str = os.path.join(DATA_DIR, _ACTIVE_DB_CONFIG_NAME)
 _DEFAULT_DB_PATH: str = os.path.join(DATA_DIR, DB_FILENAME)
+
+
+def _migrate_legacy_data_dir(
+    *,
+    legacy_dir: str,
+    data_dir: str,
+    db_filename: str,
+    active_db_config_name: str = _ACTIVE_DB_CONFIG_NAME,
+) -> list[str]:
+    """Move the DB, active_db.txt and backups/ from legacy_dir to data_dir.
+
+    Idempotent and non-destructive: never overwrites a file that already
+    exists at the destination (if a collision is found, the legacy file is
+    left in place rather than risking data loss). No-ops entirely when
+    legacy_dir has nothing to migrate (fresh install, or already migrated).
+
+    Returns a list of human-readable descriptions of what was moved, empty
+    if there was nothing to do.
+    """
+    legacy_db = os.path.join(legacy_dir, db_filename)
+    legacy_config = os.path.join(legacy_dir, active_db_config_name)
+    legacy_backups = os.path.join(legacy_dir, "backups")
+
+    has_legacy_data = (
+        os.path.isfile(legacy_db)
+        or os.path.isfile(legacy_config)
+        or (os.path.isdir(legacy_backups) and os.listdir(legacy_backups))
+    )
+    if not has_legacy_data:
+        return []
+
+    os.makedirs(data_dir, exist_ok=True)
+    moved: list[str] = []
+
+    new_db = os.path.join(data_dir, db_filename)
+    if os.path.isfile(legacy_db) and not os.path.isfile(new_db):
+        shutil.move(legacy_db, new_db)
+        moved.append(db_filename)
+
+    new_config = os.path.join(data_dir, active_db_config_name)
+    if os.path.isfile(legacy_config) and not os.path.isfile(new_config):
+        shutil.move(legacy_config, new_config)
+        moved.append(active_db_config_name)
+
+    if os.path.isdir(legacy_backups):
+        new_backups = os.path.join(data_dir, "backups")
+        os.makedirs(new_backups, exist_ok=True)
+        moved_backups = 0
+        for name in os.listdir(legacy_backups):
+            src = os.path.join(legacy_backups, name)
+            dst = os.path.join(new_backups, name)
+            if os.path.isfile(src) and not os.path.exists(dst):
+                shutil.move(src, dst)
+                moved_backups += 1
+        if not os.listdir(legacy_backups):
+            os.rmdir(legacy_backups)
+        if moved_backups:
+            moved.append(f"backups/ ({moved_backups} archivo/s)")
+
+    return moved
+
+
+_migration_result = _migrate_legacy_data_dir(
+    legacy_dir=_LEGACY_DATA_DIR, data_dir=DATA_DIR, db_filename=DB_FILENAME
+)
+if _migration_result:
+    logger.info(
+        "Datos migrados de %s a %s: %s",
+        _LEGACY_DATA_DIR, DATA_DIR, ", ".join(_migration_result),
+    )
 
 
 def _load_active_db_path() -> str:

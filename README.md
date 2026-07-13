@@ -151,7 +151,9 @@ uv run python scripts/web_ui_server.py
 
 Abre tu navegador en **http://127.0.0.1:8765**
 
-La base de datos SQLite se crea automáticamente en `scripts/mi_portafolio.db` al primer inicio.
+La base de datos SQLite se crea automáticamente en `data/mi_portafolio.db` al primer inicio.
+
+> Si venís de una versión anterior con datos en `scripts/`, se migran automáticamente a `data/` la primera vez que corras la app tras actualizar (DB, backups y la selección de DB activa). La migración es segura e idempotente: nunca sobrescribe un archivo que ya exista en el destino.
 
 ### Puerto configurable
 
@@ -249,14 +251,16 @@ También disponible vía script PowerShell:
 ├── local_folio/                # Paquete Python (stdlib-only)
 │   ├── core.py                 # Lógica de negocio pura (cuentas, movimientos, reportes)
 │   ├── db.py                   # Conexión SQLite, esquema, migraciones y backups
-│   ├── prices.py               # Cliente CoinGecko y snapshots de precios
+│   ├── prices.py               # Cliente CoinGecko, cache de precios y snapshots
 │   ├── cli.py                  # Menú interactivo de consola
 │   ├── server.py               # Servidor HTTP local + API REST
+├── data/
+│   ├── mi_portafolio.db        # Base de datos SQLite (autogenerada)
+│   ├── active_db.txt           # Selección de DB activa (autogenerado)
+│   ├── backups/                # Backups manuales de la DB
 ├── scripts/
 │   ├── gestor_portafolio.py    # Shim de compatibilidad → local_folio.cli
 │   ├── web_ui_server.py        # Shim de compatibilidad → local_folio.server
-│   ├── mi_portafolio.db        # Base de datos SQLite (autogenerada)
-│   ├── backups/                # Backups manuales de la DB
 ├── web/
 │   ├── index.html              # Shell de la aplicación web
 │   ├── app.js                  # Lógica frontend (vanilla JS)
