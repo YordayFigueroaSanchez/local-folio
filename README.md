@@ -263,7 +263,15 @@ También disponible vía script PowerShell:
 │   ├── web_ui_server.py        # Shim de compatibilidad → local_folio.server
 ├── web/
 │   ├── index.html              # Shell de la aplicación web
-│   ├── app.js                  # Lógica frontend (vanilla JS)
+│   ├── app.js                  # Entrypoint: tabs, event listeners, bootstrap (ES modules)
+│   ├── js/
+│   │   ├── api.js              # Wrapper de fetch para la API REST
+│   │   ├── format.js           # Formato numerico y de moneda
+│   │   ├── ui.js                # Toasts, tablas, modales genericos
+│   │   ├── state.js             # Estado compartido entre vistas
+│   │   ├── router.js            # Cambio de vista (mostrar/ocultar secciones)
+│   │   ├── movement-form.js     # Formulario de movimiento multi-moneda
+│   │   └── views/               # Un modulo por vista (dashboard, cuentas, etc.)
 │   ├── styles.css              # Estilos
 │   ├── i18n.js                 # Internacionalización (ES/EN)
 ├── tests/
