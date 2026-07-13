@@ -153,6 +153,24 @@ Abre tu navegador en **http://127.0.0.1:8765**
 
 La base de datos SQLite se crea automáticamente en `scripts/mi_portafolio.db` al primer inicio.
 
+### Puerto configurable
+
+El puerto por defecto es `8765`, pero se puede cambiar para correr más de una instancia en la misma PC:
+
+```bash
+# Vía argumento --port
+uv run python scripts/web_ui_server.py --port 9000
+
+# Vía variable de entorno
+LOCAL_FOLIO_PORT=9000 uv run python scripts/web_ui_server.py
+```
+
+```powershell
+# PowerShell
+.\run_web_ui.ps1 -Port 9000
+.\scripts\stop_web_ui.ps1 -Port 9000
+```
+
 ---
 
 ## Screenshots
@@ -193,6 +211,7 @@ También disponible vía script PowerShell:
 
 ```powershell
 .\run_web_ui.ps1
+# o en un puerto custom: .\run_web_ui.ps1 -Port 9000
 ```
 
 ### Secciones disponibles
@@ -255,8 +274,8 @@ Sin dependencias externas. La suite corre automáticamente en GitHub Actions (Li
 
 ## Limitaciones
 
-- **Puerto fijo**: El servidor corre en `127.0.0.1:8765`. Solo una instancia por PC.
-- **Solo localhost**: No accesible desde otras máquinas en la red.
+- **Puerto por defecto 8765**: configurable con `--port` / `LOCAL_FOLIO_PORT` para correr más de una instancia en la misma PC (cada una con su propia base de datos activa).
+- **Solo localhost por defecto**: el bind es a `127.0.0.1`; `--host`/`LOCAL_FOLIO_HOST` permiten cambiarlo, pero no hay autenticación (ver punto siguiente).
 - **Sin HTTPS**: Diseñado para uso personal local, no para producción.
 - **Sin autenticación**: Cualquier usuario en la misma máquina puede acceder.
 - **Concurrencia básica**: ThreadingHTTPServer, no recomendado para uso compartido intensivo.

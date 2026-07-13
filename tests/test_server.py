@@ -18,7 +18,7 @@ import unittest
 from http.server import ThreadingHTTPServer
 
 from local_folio import db
-from local_folio.server import PortfolioRequestHandler
+from local_folio.server import PortfolioRequestHandler, _parse_args
 
 
 def _remove_file_with_retry(path: str, attempts: int = 10, delay: float = 0.2) -> None:
@@ -443,6 +443,25 @@ class ServerApiTests(unittest.TestCase):
             # el puntero al DB temporal de esta clase se hace directo.
             db.set_active_db_path(self.tmp_db_path)
             _remove_file_with_retry(secondary_path)
+
+
+class ServerArgsTests(unittest.TestCase):
+    """Puerto configurable: valores por defecto y overrides via CLI."""
+
+    def test_defaults_match_module_constants(self) -> None:
+        from local_folio import server
+
+        args = _parse_args([])
+        self.assertEqual(args.host, server.HOST)
+        self.assertEqual(args.port, server.PORT)
+
+    def test_port_override_via_cli(self) -> None:
+        args = _parse_args(["--port", "9001"])
+        self.assertEqual(args.port, 9001)
+
+    def test_host_override_via_cli(self) -> None:
+        args = _parse_args(["--host", "0.0.0.0"])
+        self.assertEqual(args.host, "0.0.0.0")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 """Servidor HTTP local: sirve la UI web estática y expone la API REST."""
 
+import argparse
 import json
 import mimetypes
 import os
@@ -10,8 +11,12 @@ from urllib import error, parse
 
 from . import core, db, prices
 
-HOST = "127.0.0.1"
-PORT = 8765
+# Los valores por defecto se pueden sobreescribir con las variables de
+# entorno LOCAL_FOLIO_HOST / LOCAL_FOLIO_PORT, o con --host/--port al
+# lanzar el modulo (ver _parse_args). Esto permite correr mas de una
+# instancia en la misma PC apuntando a puertos distintos.
+HOST = os.environ.get("LOCAL_FOLIO_HOST", "127.0.0.1")
+PORT = int(os.environ.get("LOCAL_FOLIO_PORT", "8765"))
 
 WEB_DIR = os.path.join(db.PROJECT_ROOT, "web")
 
@@ -835,12 +840,12 @@ class PortfolioRequestHandler(BaseHTTPRequestHandler):
         _response(self, {"ok": True, "active": target_path, "active_name": os.path.basename(target_path)})
 
 
-def run_server() -> None:
+def run_server(host: str = HOST, port: int = PORT) -> None:
     with _db_connection() as conn:
         db.initialize_database(conn)
 
-    server = ThreadingHTTPServer((HOST, PORT), PortfolioRequestHandler)
-    print(f"Web UI server running at http://{HOST}:{PORT}")
+    server = ThreadingHTTPServer((host, port), PortfolioRequestHandler)
+    print(f"Web UI server running at http://{host}:{port}")
     active = db.get_db_path()
     label = "(default)" if active == db._DEFAULT_DB_PATH else "(custom — persisted)"
     print(f"Database path: {active}  {label}")
@@ -853,5 +858,21 @@ def run_server() -> None:
         print("Web UI server stopped.")
 
 
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="local-folio web UI server")
+    parser.add_argument(
+        "--host", default=HOST, help=f"Host a donde enlazar (default: {HOST})"
+    )
+    parser.add_argument(
+        "--port", type=int, default=PORT, help=f"Puerto a donde enlazar (default: {PORT})"
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = _parse_args(argv)
+    run_server(host=args.host, port=args.port)
+
+
 if __name__ == "__main__":
-    run_server()
+    main()
