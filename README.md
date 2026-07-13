@@ -171,6 +171,17 @@ LOCAL_FOLIO_PORT=9000 uv run python scripts/web_ui_server.py
 .\scripts\stop_web_ui.ps1 -Port 9000
 ```
 
+### Logging
+
+Los mensajes operativos del servidor (arranque, apagado, avisos de precios, validaciones de coherencia) usan el módulo `logging` de la stdlib con formato `timestamp [nivel] módulo: mensaje`. El nivel por defecto es `INFO`; se puede ajustar con la variable de entorno `LOCAL_FOLIO_LOG_LEVEL`:
+
+```bash
+LOCAL_FOLIO_LOG_LEVEL=DEBUG uv run python scripts/web_ui_server.py   # ver cada request entrante
+LOCAL_FOLIO_LOG_LEVEL=WARNING uv run python scripts/web_ui_server.py # solo avisos y errores
+```
+
+Los mensajes interactivos de la CLI (menús, prompts, resúmenes) no pasan por logging — son la interfaz de usuario de la aplicación, no diagnóstico.
+
 ---
 
 ## Screenshots

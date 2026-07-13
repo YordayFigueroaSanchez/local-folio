@@ -4,6 +4,7 @@ import sqlite3
 from urllib import error
 
 from . import core, db, prices
+from .logging_config import configure_logging
 
 
 def create_account(conn: sqlite3.Connection) -> None:
@@ -483,6 +484,7 @@ def print_menu() -> None:
 
 def main() -> None:
     """Application entrypoint."""
+    configure_logging()
     try:
         conn = db.get_connection()
         db.initialize_database(conn)

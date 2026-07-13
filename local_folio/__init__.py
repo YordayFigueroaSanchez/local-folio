@@ -50,6 +50,7 @@ from .db import (
     set_active_db_path,
     validate_sqlite_file,
 )
+from .logging_config import configure_logging
 from .prices import (
     COINGECKO_API_URL,
     HTTP_TIMEOUT,
@@ -76,6 +77,8 @@ __all__ = [
     "list_db_files",
     "set_active_db_path",
     "validate_sqlite_file",
+    # logging
+    "configure_logging",
     # core
     "AMOUNT_PRECISION",
     "add_currency",

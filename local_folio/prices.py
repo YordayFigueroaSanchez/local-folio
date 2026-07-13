@@ -1,10 +1,16 @@
 """Cliente de precios de mercado (CoinGecko) y snapshots de cotizaciones."""
 
 import json
+import logging
 import sqlite3
 from urllib import error, parse, request
 
 from .core import now_iso
+
+# Nombre explicito (no __name__): mismo motivo que en server.py, para
+# que este logger siempre cuelgue de la jerarquia "local_folio.*" sin
+# importar como se invoque el modulo que lo importa.
+logger = logging.getLogger("local_folio.prices")
 
 COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price"
 HTTP_TIMEOUT = 12.0
@@ -68,7 +74,7 @@ def fetch_crypto_prices_usd(symbols: list[str]) -> dict[str, float]:
 
         coin_id = SYMBOL_TO_COINGECKO_ID.get(symbol)
         if coin_id is None:
-            print(f"Aviso: símbolo sin mapeo en CoinGecko: {symbol}")
+            logger.warning("Símbolo sin mapeo en CoinGecko: %s", symbol)
             continue
 
         coingecko_ids.append(coin_id)
@@ -84,7 +90,7 @@ def fetch_crypto_prices_usd(symbols: list[str]) -> dict[str, float]:
             try:
                 symbol_to_price[symbol] = float(data[coin_id]["usd"])
             except (KeyError, TypeError, ValueError):
-                print(f"Aviso: no se pudo obtener precio USD para {symbol} ({coin_id})")
+                logger.warning("No se pudo obtener precio USD para %s (%s)", symbol, coin_id)
 
     return symbol_to_price
 

@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 import mimetypes
 import os
 import sqlite3
@@ -10,6 +11,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib import error, parse
 
 from . import core, db, prices
+from .logging_config import configure_logging
+
+# Nombre explicito (no __name__): este modulo se ejecuta con
+# `python -m local_folio.server`, y bajo -m Python siempre asigna
+# __name__ = "__main__" al modulo invocado, lo que rompe la jerarquia
+# de loggers "local_folio.*" que configure_logging() prepara.
+logger = logging.getLogger("local_folio.server")
 
 # Los valores por defecto se pueden sobreescribir con las variables de
 # entorno LOCAL_FOLIO_HOST / LOCAL_FOLIO_PORT, o con --host/--port al
@@ -334,8 +342,9 @@ class PortfolioRequestHandler(BaseHTTPRequestHandler):
     server_version = "PortfolioWebUI/1.0"
 
     def log_message(self, fmt: str, *args) -> None:
-        # Keep server output concise for local use.
-        return
+        # Silencioso por defecto (nivel INFO); habilitar con
+        # LOCAL_FOLIO_LOG_LEVEL=DEBUG para ver cada request entrante.
+        logger.debug(fmt, *args)
 
     def do_GET(self) -> None:
         parsed = parse.urlparse(self.path)
@@ -642,7 +651,7 @@ class PortfolioRequestHandler(BaseHTTPRequestHandler):
             )
 
             if not is_valid:
-                print(f"WARNING: Coherence validation failed: {error_msg}")
+                logger.warning("Coherence validation failed: %s", error_msg)
 
             with _db_connection() as conn:
                 cur = conn.cursor()
@@ -841,21 +850,23 @@ class PortfolioRequestHandler(BaseHTTPRequestHandler):
 
 
 def run_server(host: str = HOST, port: int = PORT) -> None:
+    configure_logging()
+
     with _db_connection() as conn:
         db.initialize_database(conn)
 
     server = ThreadingHTTPServer((host, port), PortfolioRequestHandler)
-    print(f"Web UI server running at http://{host}:{port}")
+    logger.info("Web UI server running at http://%s:%s", host, port)
     active = db.get_db_path()
     label = "(default)" if active == db._DEFAULT_DB_PATH else "(custom — persisted)"
-    print(f"Database path: {active}  {label}")
+    logger.info("Database path: %s  %s", active, label)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
         server.server_close()
-        print("Web UI server stopped.")
+        logger.info("Web UI server stopped.")
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:

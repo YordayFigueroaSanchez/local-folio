@@ -463,6 +463,17 @@ class ServerArgsTests(unittest.TestCase):
         args = _parse_args(["--host", "0.0.0.0"])
         self.assertEqual(args.host, "0.0.0.0")
 
+    def test_logger_name_is_explicit_not_dunder_name(self) -> None:
+        """Regresion: bajo `python -m local_folio.server`, __name__ del modulo
+        pasa a ser "__main__", lo que rompe la jerarquia de loggers
+        "local_folio.*" si el logger se crea con logging.getLogger(__name__).
+        Debe usarse un nombre explicito e independiente de como se invoque.
+        """
+        from local_folio import prices, server
+
+        self.assertEqual(server.logger.name, "local_folio.server")
+        self.assertEqual(prices.logger.name, "local_folio.prices")
+
 
 if __name__ == "__main__":
     unittest.main()
